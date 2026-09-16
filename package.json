@@ -1,0 +1,17 @@
+{
+  "name": "wallpaper-engine-clone",
+  "version": "0.1.0",
+  "description": "Personal music-reactive live wallpaper engine for Windows (Wallpaper Engine style)",
+  "main": "src/main/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --we-debug"
+  },
+  "dependencies": {
+    "koffi": "^3.1.5"
+  },
+  "devDependencies": {
+    "electron": "^44.0.0"
+  }
+}

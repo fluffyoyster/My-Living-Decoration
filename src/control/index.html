@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wallpaper Engine Clone</title>
+<style>
+  :root {
+    --bg: #0d0f14; --panel: #141821; --panel2: #1b2030; --line: #262c3d;
+    --text: #e6e9f2; --muted: #8b93a7; --accent: #8b5cf6; --accent2: #22d3ee; --good: #34d399; --warn: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+  body { display: grid; grid-template-rows: auto 1fr; }
+  header { display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, #141821, #0d0f14); }
+  header h1 { font-size: 16px; margin: 0; letter-spacing: .3px; }
+  header .status { color: var(--muted); font-size: 12px; margin-left: auto; display: flex; gap: 14px; }
+  header .status b { color: var(--good); font-weight: 600; }
+  main { display: grid; grid-template-columns: 250px 1fr 320px; min-height: 0; }
+  section { min-height: 0; overflow: auto; padding: 16px; }
+  section + section { border-left: 1px solid var(--line); }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 0 0 10px; }
+  button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; font: inherit; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  button.small { padding: 4px 9px; font-size: 12px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  /* screens */
+  .seg { display: flex; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+  .seg button { flex: 1; border: 0; border-radius: 0; background: transparent; color: var(--muted); }
+  .seg button.on { background: var(--panel2); color: var(--text); }
+  .slot { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); margin-bottom: 8px; cursor: pointer; }
+  .slot.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .slot .name { font-weight: 600; font-size: 13px; }
+  .slot .wp { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .slot .mode { color: var(--muted); font-size: 11px; margin-top: 4px; }
+  .mini { display: flex; gap: 3px; margin-top: 6px; }
+  .mini div { height: 14px; background: var(--panel2); border: 1px solid var(--line); border-radius: 3px; }
+
+  /* wallpaper grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; cursor: pointer; transition: transform .12s, border-color .12s; }
+  .card:hover { transform: translateY(-2px); border-color: var(--accent2); }
+  .card.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .card .thumb { aspect-ratio: 16/9; background: radial-gradient(circle at 30% 30%, #5b21b6, #0f172a 60%), radial-gradient(circle at 70% 70%, #0e7490, transparent 50%); background-size: cover; background-position: center; display: grid; place-items: center; color: #cbd5e1; font-size: 12px; }
+  .card .body { padding: 10px 12px; }
+  .card .title { font-weight: 600; }
+  .card .desc { color: var(--muted); font-size: 12px; margin-top: 2px; max-height: 3.6em; overflow: hidden; }
+  .card .tag { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 6px; background: #1e1b4b; color: #c4b5fd; margin-top: 6px; }
+  .preview { margin-top: 18px; }
+  .preview iframe { width: 100%; aspect-ratio: 16/9; border: 1px solid var(--line); border-radius: 12px; background: #000; }
+
+  /* props */
+  .prop { margin-bottom: 12px; }
+  .prop label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .prop label span:last-child { color: var(--text); font-variant-numeric: tabular-nums; }
+  .prop label .lbl { display: inline-flex; align-items: center; gap: 6px; }
+  .info { position: relative; display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--muted); color: var(--muted); font-size: 10px; font-style: italic; font-family: Georgia, serif; cursor: help; flex: none; }
+  .info:hover { border-color: var(--accent2); color: var(--accent2); }
+  .info .tip { display: none; }
+  #floatTip { display: none; position: fixed; z-index: 1000; width: 280px; max-width: calc(100vw - 24px); padding: 9px 11px; background: #1f2433; color: var(--text); border: 1px solid var(--line); border-radius: 8px; font: 12px/1.45 "Segoe UI", system-ui, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,.45); pointer-events: none; }
+  .toggle .lbl { display: inline-flex; align-items: center; gap: 6px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  select, input[type=color] { width: 100%; background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font: inherit; }
+  input[type=color] { height: 34px; padding: 2px; }
+  .toggle { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .toggle input { accent-color: var(--accent); width: 18px; height: 18px; }
+  .settings { margin-top: 24px; }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 10px; }
+  .warn { color: var(--warn); font-size: 12px; margin-top: 8px; }
+  footer { margin-top: 24px; display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Wallpaper Engine Clone</h1>
+  <button class="small" id="identify" title="Flash the monitor number on each screen">Identify screens</button>
+  <button class="small" id="reload">Reload wallpapers</button>
+  <button class="small" id="folder">Open wallpapers folder</button>
+  <div class="status">
+    <span id="stat-fps"></span>
+    <span id="stat-audio"></span>
+    <span id="stat-mode"></span>
+  </div>
+</header>
+<main>
+  <section>
+    <h2>Screens</h2>
+    <div class="seg" id="layoutSeg">
+      <button data-layout="span">Span all</button>
+      <button data-layout="per-monitor">Per monitor</button>
+    </div>
+    <div id="slots"></div>
+    <div class="hint" id="slotHint"></div>
+  </section>
+  <section>
+    <h2>Wallpapers <span id="targetLabel" style="text-transform:none;letter-spacing:0;color:var(--accent2)"></span></h2>
+    <div class="grid" id="grid"></div>
+    <div class="preview">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">Live preview</h2>
+        <label class="row" style="font-size:12px;color:var(--muted)"><input type="checkbox" id="previewOn"> enabled (uses GPU)</label>
+      </div>
+      <iframe id="preview" style="display:none" allow="autoplay; microphone; display-capture"></iframe>
+    </div>
+  </section>
+  <section>
+    <h2>Wallpaper settings <span id="propsFor" style="text-transform:none;letter-spacing:0;color:var(--accent2)"></span></h2>
+    <div class="row" id="actions" style="margin-bottom:14px"></div>
+    <div id="props"></div>
+    <div class="row"><button class="small" id="resetProps">Reset to defaults</button></div>
+
+    <div class="settings">
+      <h2>Engine settings</h2>
+      <div class="toggle"><span class="lbl">Audio source<span class="info" tabindex="0">i<span class="tip">System audio reacts to whatever Windows is playing (Spotify, YouTube, games). Microphone reacts to the room instead.</span></span></span>
+        <select id="audioSource" style="width:140px"><option value="system">System audio</option><option value="mic">Microphone</option></select></div>
+      <div class="toggle"><span class="lbl">Quality<span class="info" tabindex="0">i<span class="tip">Auto watches the frame time and moves between four tiers (resolution, spore count, flame samples). Pick a fixed tier if you prefer a constant look.</span></span></span>
+        <select id="quality" style="width:140px"><option value="auto">Auto (adaptive)</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+      <div class="toggle"><span class="lbl">FPS cap<span class="info" tabindex="0">i<span class="tip">Upper limit on frames per second. Lower caps save GPU and battery; 60 is plenty for a wallpaper.</span></span></span>
+        <select id="fpsCap" style="width:140px"><option value="30">30</option><option value="60">60</option><option value="90">90</option><option value="120">120</option><option value="0">Uncapped</option></select></div>
+      <div class="toggle"><span class="lbl">Pause when an app is fullscreen<span class="info" tabindex="0">i<span class="tip">Stops rendering while a game or video covers a monitor, so the wallpaper never steals frames from it.</span></span></span><input type="checkbox" id="pauseOnFullscreen"></div>
+      <div class="toggle"><span class="lbl">Start with Windows<span class="info" tabindex="0">i<span class="tip">Launches the engine (in the tray) when you log in.</span></span></span><input type="checkbox" id="startWithWindows"></div>
+      <div class="toggle"><span class="lbl">Pause everything<span class="info" tabindex="0">i<span class="tip">Freeze all wallpapers until unpaused. The tray menu has the same switch.</span></span></span><input type="checkbox" id="paused"></div>
+      <div class="hint">Closing this window keeps the wallpapers running from the tray icon.</div>
+      <div class="warn" id="platformWarn"></div>
+      <footer><button id="quit">Quit engine</button></footer>
+    </div>
+  </section>
+</main>
+<div id="floatTip"></div>
+<script>
+// one floating tooltip for every ⓘ: positioned in JS so it flips to whichever side has room
+(() => {
+  const tip = document.getElementById('floatTip');
+  let current = null;
+  const show = (el) => {
+    const text = el.querySelector('.tip') && el.querySelector('.tip').textContent;
+    if (!text) return;
+    current = el; tip.textContent = text; tip.style.display = 'block';
+    const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+    let x = r.right + 10, y = r.top - 6;
+    if (x + tw > window.innerWidth - 8) x = r.left - tw - 10;          // no room on the right -> left side
+    if (x < 8) { x = 8; y = r.bottom + 8; }                            // still no room -> below
+    if (y + th > window.innerHeight - 8) y = window.innerHeight - th - 8;
+    if (y < 8) y = 8;
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  };
+  const hide = () => { current = null; tip.style.display = 'none'; };
+  document.addEventListener('mouseover', (e) => { const el = e.target.closest && e.target.closest('.info'); if (el && el !== current) show(el); });
+  document.addEventListener('mouseout', (e) => { const el = e.target.closest && e.target.closest('.info'); if (el && !el.contains(e.relatedTarget)) hide(); });
+  document.addEventListener('focusin', (e) => { const el = e.target.closest && e.target.closest('.info'); if (el) show(el); });
+  document.addEventListener('focusout', hide);
+  document.addEventListener('scroll', hide, true);
+  window.addEventListener('resize', hide);
+})();
+(async () => {
+  const $ = (s) => document.querySelector(s);
+  let state = await control.state();
+  let selectedKey = state.slots[0] && state.slots[0].key;
+
+  function slotByKey(k) { return state.slots.find(s => s.key === k); }
+  function wallpaperById(id) { return state.wallpapers.find(w => w.id === id); }
+
+  function renderLayout() {
+    for (const b of document.querySelectorAll('#layoutSeg button')) b.classList.toggle('on', b.dataset.layout === (state.settings.layout || 'span'));
+    $('#slotHint').textContent = state.monitorCount > 1
+      ? (state.settings.layout === 'per-monitor' ? 'Each monitor runs its own wallpaper.' : 'One continuous scene across all monitors; the wallpaper draws a clock on every screen.')
+      : 'One monitor detected.';
+  }
+
+  function renderSlots() {
+    const el = $('#slots'); el.innerHTML = '';
+    for (const s of state.slots) {
+      const d = document.createElement('div');
+      d.className = 'slot' + (s.key === selectedKey ? ' on' : '');
+      const wp = wallpaperById(s.wallpaper);
+      const total = s.monitors.reduce((a, m) => a + m.w, 0) || 1;
+      d.innerHTML = `<div class="name">${s.label}</div><div class="wp">${wp ? wp.name : '— none —'}</div>
+        <div class="mini">${s.monitors.map(m => `<div style="flex:${m.w / total}" title="${m.name}"></div>`).join('')}</div>
+        <div class="mode">${s.attachMode === 'n/a' ? '' : 'desktop layer: ' + s.attachMode}</div>`;
+      d.onclick = () => { selectedKey = s.key; renderAll(); };
+      el.appendChild(d);
+    }
+  }
+
+  function renderGrid() {
+    const slot = slotByKey(selectedKey);
+    $('#targetLabel').textContent = slot ? `→ ${slot.label}` : '';
+    const el = $('#grid'); el.innerHTML = '';
+    for (const w of state.wallpapers) {
+      const c = document.createElement('div');
+      c.className = 'card' + (slot && slot.wallpaper === w.id ? ' on' : '');
+      c.innerHTML = `<div class="thumb" ${w.preview ? `style="background-image:url('${w.preview}')"` : ''}>${w.preview ? '' : w.name}</div>
+        <div class="body"><div class="title">${w.name}</div><div class="desc">${w.description}</div>${w.audio ? '<span class="tag">music reactive</span>' : ''}</div>`;
+      c.onclick = async () => { state = await control.setWallpaper(selectedKey, w.id); renderAll(); };
+      el.appendChild(c);
+    }
+    renderPreview();
+  }
+
+  function renderPreview() {
+    const slot = slotByKey(selectedKey);
+    const wp = slot && wallpaperById(slot.wallpaper);
+    const f = $('#preview');
+    const on = $('#previewOn').checked && wp;
+    f.style.display = on ? 'block' : 'none';
+    const url = on ? `${wp.entry}?preview=1&slot=${encodeURIComponent(slot.id)}` : 'about:blank';
+    if (f.dataset.url !== url) { f.src = url; f.dataset.url = url; }
+  }
+
+  const esc = (t) => String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const info = (hint) => hint ? `<span class="info" tabindex="0">i<span class="tip">${esc(hint)}</span></span>` : '';
+  const lbl = (p, name) => `<span class="lbl">${esc(p.label || name)}${info(p.hint)}</span>`;
+
+  function renderProps() {
+    const slot = slotByKey(selectedKey);
+    const wp = slot && wallpaperById(slot.wallpaper);
+    const el = $('#props'); el.innerHTML = '';
+    $('#propsFor').textContent = wp ? `· ${wp.name}` : '';
+    const ac = $('#actions'); ac.innerHTML = '';
+    if (!wp) return;
+    for (const a of (wp.actions || [])) {
+      const b = document.createElement('button'); b.className = 'small'; b.innerHTML = `${esc(a.label)}${info(a.hint)}`;
+      b.onclick = () => control.action(selectedKey, a.id);
+      ac.appendChild(b);
+    }
+    for (const [name, p] of Object.entries(wp.props || {})) {
+      const val = slot.props[name] !== undefined ? slot.props[name] : p.default;
+      const d = document.createElement('div'); d.className = 'prop';
+      if (p.type === 'slider') {
+        d.innerHTML = `<label>${lbl(p, name)}<span data-v>${val}</span></label><input type="range" min="${p.min}" max="${p.max}" step="${p.step || 0.01}" value="${val}">`;
+        const inp = d.querySelector('input'), out = d.querySelector('[data-v]');
+        inp.oninput = () => { out.textContent = inp.value; control.setProp(selectedKey, name, parseFloat(inp.value)); slot.props[name] = parseFloat(inp.value); };
+      } else if (p.type === 'toggle') {
+        d.innerHTML = `<div class="toggle">${lbl(p, name)}<input type="checkbox" ${val ? 'checked' : ''}></div>`;
+        const inp = d.querySelector('input');
+        inp.onchange = () => { control.setProp(selectedKey, name, inp.checked); slot.props[name] = inp.checked; };
+      } else if (p.type === 'select') {
+        d.innerHTML = `<label>${lbl(p, name)}</label><select>${(p.options || []).map(o => `<option value="${o}" ${o === val ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
+        const inp = d.querySelector('select');
+        inp.onchange = () => { control.setProp(selectedKey, name, inp.value); slot.props[name] = inp.value; };
+      } else if (p.type === 'color') {
+        d.innerHTML = `<label>${lbl(p, name)}</label><input type="color" value="${val}">`;
+        const inp = d.querySelector('input');
+        inp.oninput = () => { control.setProp(selectedKey, name, inp.value); slot.props[name] = inp.value; };
+      }
+      el.appendChild(d);
+    }
+  }
+
+  function renderSettings() {
+    const s = state.settings;
+    $('#audioSource').value = s.audioSource || 'system';
+    $('#quality').value = s.quality || 'auto';
+    $('#fpsCap').value = String(s.fpsCap ?? 60);
+    $('#pauseOnFullscreen').checked = !!s.pauseOnFullscreen;
+    $('#startWithWindows').checked = !!s.startWithWindows;
+    $('#paused').checked = !!s.paused;
+    $('#platformWarn').textContent = state.platform === 'win32' ? '' : 'Not running on Windows: wallpapers open as normal windows (preview mode).';
+    $('#stat-mode').textContent = `v${state.version}`;
+  }
+
+  function renderAll() { renderLayout(); renderSlots(); renderGrid(); renderProps(); renderSettings(); }
+
+  for (const b of document.querySelectorAll('#layoutSeg button')) b.onclick = async () => {
+    state = await control.setSetting('layout', b.dataset.layout); selectedKey = state.slots[0].key; renderAll();
+  };
+  for (const id of ['audioSource', 'quality', 'fpsCap']) $('#' + id).onchange = async (e) => {
+    const v = id === 'fpsCap' ? parseInt(e.target.value, 10) : e.target.value;
+    state = await control.setSetting(id, v); renderSettings();
+  };
+  for (const id of ['pauseOnFullscreen', 'startWithWindows', 'paused']) $('#' + id).onchange = async (e) => {
+    state = await control.setSetting(id, e.target.checked); renderSettings();
+  };
+  $('#resetProps').onclick = async () => { state = await control.resetProps(selectedKey); renderAll(); };
+  $('#identify').onclick = () => control.identify();
+  $('#reload').onclick = () => control.reload();
+  $('#folder').onclick = () => control.openFolder();
+  $('#quit').onclick = () => control.quit();
+  $('#previewOn').onchange = renderPreview;
+
+  control.onStats((s) => {
+    $('#stat-fps').innerHTML = `<b>${s.fps}</b> fps · ${s.tier} · ${s.width}×${s.height}`;
+    $('#stat-audio').textContent = s.audio ? `audio: ${s.audio}` : '';
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mycelia</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: default; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #err { position: fixed; inset: 0; display: none; place-items: center; color: #f88; font: 14px/1.5 monospace; white-space: pre-wrap; padding: 24px; background: #000; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="err"></div>
+<script src="../../src/sdk/wallpaper-sdk.js"></script>
+<script src="../../src/sdk/clock-crowd.js"></script>
+<script src="shaders.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
