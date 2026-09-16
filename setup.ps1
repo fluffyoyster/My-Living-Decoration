@@ -55,7 +55,17 @@ if (-not (Test-Path $electronExe)) {
   if (-not (Test-Path $npm)) { $npm = 'npm' }
   & $npm install --no-audit --no-fund
   if ($LASTEXITCODE -ne 0) { throw "npm install failed (exit code $LASTEXITCODE). Check your internet connection and run again." }
-  if (-not (Test-Path $electronExe)) { throw 'npm finished but Electron did not download. Run start.bat again.' }
+}
+
+# Electron 44+ no longer downloads its ~120 MB binary during `npm install`; it fetches it
+# the first time it is used. Do that explicitly so the first launch doesn't fail.
+if (-not (Test-Path $electronExe)) {
+  $installJs = Join-Path $root 'node_modules\electron\install.js'
+  if (-not (Test-Path $installJs)) { throw 'node_modules\electron is missing. Delete the node_modules folder and run start.bat again.' }
+  Write-Step 'Downloading the Electron binary (about 120 MB, one time)'
+  & $nodeExe $installJs
+  if ($LASTEXITCODE -ne 0) { throw "Electron download failed (exit code $LASTEXITCODE). Check your internet connection and run start.bat again." }
+  if (-not (Test-Path $electronExe)) { throw 'Electron did not download. Delete the node_modules folder and run start.bat again.' }
 }
 
 # ---------------------------------------------------------------- 3. launch
