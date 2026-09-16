@@ -1,9 +1,21 @@
-# Wallpaper Engine Clone
+# My Living Decoration
 
 A personal, music-reactive live-wallpaper engine for Windows. Wallpapers render
 *behind* your desktop icons (the same Progman/WorkerW trick Wallpaper Engine and
 Lively use), react to whatever is playing on the PC via Windows' built-in audio
 loopback, pause when a game is fullscreen, and live in the tray.
+
+## Get it on another PC
+
+The repo is private, so sign in to GitHub first. Either download it with
+**Code → Download ZIP** on github.com and unzip it anywhere, or clone it:
+
+```
+git clone https://github.com/fluffyoyster/My-Living-Decoration.git
+```
+
+Then double-click `start.bat` (see below). Nothing needs installing beforehand.
+To pick up later changes on a cloned copy, run `git pull` in the folder.
 
 ## Run it
 
