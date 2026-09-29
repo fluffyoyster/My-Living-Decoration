@@ -1,0 +1,62 @@
+<!--
+  Garbage Collector — minimal Sysmon config (read-only telemetry).
+  Captures just what the wallpaper uses: process create, DLL/image loads,
+  file creates, registry value writes, network connects, DNS queries.
+  Tuned to reduce flood; adjust the excludes if a source is too noisy/quiet.
+-->
+<Sysmon schemaversion="4.90">
+  <HashAlgorithms>MD5</HashAlgorithms>
+  <EventFiltering>
+
+    <!-- 1: process create -->
+    <RuleGroup name="proc" groupRelation="or">
+      <ProcessCreate onmatch="exclude"/>
+    </RuleGroup>
+
+    <!-- 7: image (DLL) loads — high volume; keep but drop the noisiest system dir churn -->
+    <RuleGroup name="dll" groupRelation="or">
+      <ImageLoad onmatch="exclude">
+        <ImageLoaded condition="begin with">C:\Windows\System32\wbem\</ImageLoaded>
+        <ImageLoaded condition="begin with">C:\Windows\WinSxS\</ImageLoaded>
+      </ImageLoad>
+    </RuleGroup>
+
+    <!-- 11: file create -->
+    <RuleGroup name="file" groupRelation="or">
+      <FileCreate onmatch="exclude">
+        <TargetFilename condition="end with">.etl</TargetFilename>
+        <TargetFilename condition="contains">\gc-feed.ndjson</TargetFilename>
+      </FileCreate>
+    </RuleGroup>
+
+    <!-- 12/13/14: registry create/set/rename -->
+    <RuleGroup name="reg" groupRelation="or">
+      <RegistryEvent onmatch="exclude">
+        <TargetObject condition="contains">\Microsoft\Windows\CurrentVersion\Explorer\</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!-- 3: network connect -->
+    <RuleGroup name="net" groupRelation="or">
+      <NetworkConnect onmatch="exclude">
+        <DestinationIp condition="is">127.0.0.1</DestinationIp>
+        <DestinationIp condition="is">::1</DestinationIp>
+      </NetworkConnect>
+    </RuleGroup>
+
+    <!-- 22: DNS query -->
+    <RuleGroup name="dns" groupRelation="or">
+      <DnsQuery onmatch="exclude"/>
+    </RuleGroup>
+
+    <!-- silence everything else we don't use -->
+    <ProcessTerminate onmatch="include"/>
+    <DriverLoad onmatch="include"/>
+    <CreateRemoteThread onmatch="include"/>
+    <ProcessAccess onmatch="include"/>
+    <FileCreateStreamHash onmatch="include"/>
+    <PipeEvent onmatch="include"/>
+    <WmiEvent onmatch="include"/>
+
+  </EventFiltering>
+</Sysmon>

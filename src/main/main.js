@@ -402,6 +402,27 @@ ipcMain.handle('wp:get-data', (_e, key) => { try { return JSON.parse(fs.readFile
 ipcMain.handle('wp:set-data', (_e, key, value) => { try { fs.mkdirSync(path.dirname(dataPath(key)), { recursive: true }); fs.writeFileSync(dataPath(key), JSON.stringify(value)); return true; } catch (e) { console.warn('set-data failed', e.message); return false; } });
 ipcMain.on('wp:stats', (_e, stats) => { if (panelWin && !panelWin.isDestroyed()) panelWin.webContents.send('panel:stats', stats); });
 
+// Garbage Collector live feed: the read-only collector appends redacted NDJSON
+// ({t,src,text}) to userData/gc-feed.ndjson; the wallpaper pulls new lines.
+const GC_FEED = path.join(app.getPath('userData'), 'gc-feed.ndjson');
+ipcMain.handle('gc:pull', (_e, since) => {
+  const from = Number(since) || 0;
+  try {
+    const raw = fs.readFileSync(GC_FEED, 'utf8');
+    const lines = raw.split('\n');
+    const out = []; let maxT = from;
+    for (let i = Math.max(0, lines.length - 3000); i < lines.length; i++) {
+      const s = lines[i]; if (!s) continue;
+      let o; try { o = JSON.parse(s); } catch (_) { continue; }
+      if (!o || typeof o.t !== 'number' || o.t <= from) continue;
+      out.push({ src: String(o.src || 'proc'), text: String(o.text || '') });
+      if (o.t > maxT) maxT = o.t;
+      if (out.length >= 1500) break;
+    }
+    return { lines: out, ts: maxT };
+  } catch (_) { return { lines: [], ts: from }; }
+});
+
 // ---------------------------------------------------------------- tray
 function trayIcon() {
   const p = path.join(ROOT, 'assets', 'icon.png');

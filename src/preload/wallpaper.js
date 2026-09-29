@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('host', {
   onAction: listeners('host:action'),
   getData: (key) => ipcRenderer.invoke('wp:get-data', key),
   setData: (key, value) => ipcRenderer.invoke('wp:set-data', key, value),
+  gcPull: (since) => ipcRenderer.invoke('gc:pull', since),
   log: (msg) => ipcRenderer.send('wp:log', String(msg)),
   stats: (s) => ipcRenderer.send('wp:stats', s),
 });
