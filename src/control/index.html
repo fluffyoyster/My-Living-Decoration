@@ -69,10 +69,19 @@
   .hint { color: var(--muted); font-size: 12px; margin-top: 10px; }
   .warn { color: var(--warn); font-size: 12px; margin-top: 8px; }
   footer { margin-top: 24px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .iconbtn { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; color: var(--text); width: 32px; height: 32px; font-size: 16px; line-height: 1; cursor: pointer; display: grid; place-items: center; padding: 0; }
+  .iconbtn:hover { border-color: var(--accent); color: var(--accent2); }
+  .modal { position: fixed; inset: 0; background: rgba(4,6,12,.55); display: grid; place-items: start center; z-index: 2000; padding: 48px 16px; overflow: auto; }
+  .modalCard { width: 420px; max-width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  .modalHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .updBox { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--panel2); margin-bottom: 8px; }
+  .upd { margin: 10px 0 0; max-height: 180px; overflow: auto; background: #0b0e16; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: 11px/1.4 "Consolas","Menlo",monospace; color: var(--muted); white-space: pre-wrap; }
+  .settings { margin-top: 0; }
 </style>
 </head>
 <body>
 <header>
+  <button class="iconbtn" id="gearBtn" title="Settings &amp; updates">⚙</button>
   <h1>Wallpaper Engine Clone</h1>
   <button class="small" id="identify" title="Flash the monitor number on each screen">Identify screens</button>
   <button class="small" id="reload">Reload wallpapers</button>
@@ -109,8 +118,23 @@
     <div class="row" id="actions" style="margin-bottom:14px"></div>
     <div id="props"></div>
     <div class="row"><button class="small" id="resetProps">Reset to defaults</button><button class="small" id="resetColours">Reset colours</button></div>
+  </section>
+</main>
 
-    <div class="settings">
+<!-- gear modal: updates + engine settings -->
+<div id="settingsModal" class="modal" style="display:none">
+  <div class="modalCard">
+    <div class="modalHead"><h2 style="margin:0;font-size:15px;letter-spacing:.3px;color:var(--text);text-transform:none">Settings</h2><button class="iconbtn" id="closeSettings" title="Close">✕</button></div>
+
+    <div class="updBox">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div><div style="font-weight:600">Update</div><div class="hint" style="margin:2px 0 0">Pull the latest version from GitHub and restart.</div></div>
+        <button class="small primary" id="updateBtn">Check for updates</button>
+      </div>
+      <pre id="updateStatus" class="upd" style="display:none"></pre>
+    </div>
+
+    <div class="settings" style="margin-top:6px">
       <h2>Engine settings</h2>
       <div class="toggle"><span class="lbl">Audio source<span class="info" tabindex="0">i<span class="tip">System audio reacts to whatever Windows is playing (Spotify, YouTube, games). Microphone reacts to the room instead.</span></span></span>
         <select id="audioSource" style="width:140px"><option value="system">System audio</option><option value="mic">Microphone</option></select></div>
@@ -125,8 +149,8 @@
       <div class="warn" id="platformWarn"></div>
       <footer><button id="quit">Quit engine</button></footer>
     </div>
-  </section>
-</main>
+  </div>
+</div>
 <div id="floatTip"></div>
 <script>
 // one floating tooltip for every ⓘ: positioned in JS so it flips to whichever side has room
@@ -295,6 +319,26 @@
   $('#folder').onclick = () => control.openFolder();
   $('#quit').onclick = () => control.quit();
   $('#previewOn').onchange = renderPreview;
+
+  // gear settings modal + self-update
+  const modal = $('#settingsModal');
+  $('#gearBtn').onclick = () => { modal.style.display = 'grid'; };
+  $('#closeSettings').onclick = () => { modal.style.display = 'none'; };
+  modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') modal.style.display = 'none'; });
+  $('#updateBtn').onclick = async () => {
+    const btn = $('#updateBtn'), out = $('#updateStatus'), prev = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Updating…';
+    out.style.display = 'block'; out.textContent = 'Checking GitHub…';
+    try {
+      const r = await control.update();
+      out.textContent = (r && r.out ? r.out : '').trim() || 'No output.';
+      if (r && r.ok && r.relaunching) { btn.textContent = 'Restarting…'; out.textContent += '\n\nUpdated — restarting the engine…'; }
+      else if (r && r.upToDate) { btn.textContent = 'Already up to date'; btn.disabled = false; setTimeout(() => { btn.textContent = prev; }, 2500); }
+      else if (r && r.ok) { btn.textContent = 'Updated'; btn.disabled = false; }
+      else { btn.textContent = 'Update failed'; btn.disabled = false; setTimeout(() => { btn.textContent = prev; }, 3500); }
+    } catch (e) { out.textContent = 'Update error: ' + (e && e.message || e); btn.disabled = false; btn.textContent = prev; }
+  };
 
   control.onStats((s) => {
     $('#stat-fps').innerHTML = `<b>${s.fps}</b> fps · ${s.tier} · ${s.width}×${s.height}`;

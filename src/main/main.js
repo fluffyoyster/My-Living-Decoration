@@ -370,6 +370,30 @@ ipcMain.handle('panel:action', (_e, key, name) => {
   return true;
 });
 ipcMain.handle('panel:open-external', (_e, url) => { if (/^https?:/.test(url)) shell.openExternal(url); });
+
+// Self-update: git pull the repo, npm install if needed, then relaunch.
+ipcMain.handle('panel:update', async () => {
+  const { execFile } = require('child_process');
+  const run = (cmd, args) => new Promise((resolve) => {
+    execFile(cmd, args, { cwd: ROOT, shell: true, timeout: 240000, windowsHide: true }, (err, so, se) => {
+      resolve({ code: err ? (typeof err.code === 'number' ? err.code : 1) : 0, out: String(so || '') + String(se || '') });
+    });
+  });
+  let out = '';
+  const before = await run('git', ['rev-parse', 'HEAD']);
+  if (before.code !== 0) return { ok: false, out: 'Not a git checkout, or Git is not installed.\n' + before.out };
+  const pull = await run('git', ['pull', '--ff-only']);
+  out += pull.out;
+  if (pull.code !== 0) return { ok: false, out: (out || 'git pull failed.') + '\n\nIf you have local changes, run "git reset --hard origin/main" in the folder.' };
+  const after = await run('git', ['rev-parse', 'HEAD']);
+  if (before.out.trim() === after.out.trim()) return { ok: true, upToDate: true, out: out.trim() };
+  const install = await run('npm', ['install']);
+  out += '\n' + install.out;
+  if (install.code !== 0) return { ok: false, out };
+  setTimeout(() => { try { app.relaunch(); } catch (_) {} quitting = true; app.exit(0); }, 900);
+  return { ok: true, relaunching: true, out: out.trim() };
+});
+
 ipcMain.handle('panel:quit', () => { quitting = true; app.quit(); });
 
 function applySettings(name) {

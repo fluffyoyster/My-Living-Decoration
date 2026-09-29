@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('control', {
   identify: () => ipcRenderer.invoke('panel:identify'),
   action: (key, name) => ipcRenderer.invoke('panel:action', key, name),
   openExternal: (url) => ipcRenderer.invoke('panel:open-external', url),
+  update: () => ipcRenderer.invoke('panel:update'),
   quit: () => ipcRenderer.invoke('panel:quit'),
   onStats: (cb) => { const fn = (_e, s) => cb(s); ipcRenderer.on('panel:stats', fn); return () => ipcRenderer.removeListener('panel:stats', fn); },
 });
